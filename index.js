@@ -24,7 +24,7 @@ app.post("/users", (req, res) => {
       id: nanoid(),
       username: req.body.username,
       password: req.body.password,
-      subUsers: [],
+      profiles: [],
     }
     db.push(newUser)
     res.json(newUser)
@@ -46,6 +46,34 @@ app.get("/users/:id", (req, res) => {
   }
 })
 
+// Update a user's info
+app.patch("/users/:id", (req, res) => {
+  const userIndex = db.findIndex((user) => user.id === req.params.id)
+
+  if (userIndex !== -1) {
+    if (req.body.password === undefined && req.body.username === undefined) {
+      res.sendStatus(400)
+    } else {
+      let password =
+        req.body.password !== undefined
+          ? req.body.password
+          : db[userIndex].password
+
+      let username =
+        req.body.username !== undefined
+          ? req.body.username
+          : db[userIndex].username
+
+      db[userIndex].password = password
+      db[userIndex].username = username
+      res.json(db[userIndex])
+      res.sendStatus(200)
+    }
+  } else {
+    res.sendStatus(404)
+  }
+})
+
 // Delete a single user
 app.delete("/users/:id", (req, res) => {
   if (db.some((user) => user.id === req.params.id)) {
@@ -56,16 +84,16 @@ app.delete("/users/:id", (req, res) => {
   }
 })
 
-// Get a sub user from the current user
-app.get("/subUsers/:id", (req, res) => {
-  if (req.body.subUserId) {
+// Get a profile from the current user
+app.get("/profiles/:id", (req, res) => {
+  if (req.body.profileId) {
     const userIndex = db.findIndex((user) => user.id === req.params.id)
     if (userIndex !== -1) {
-      const subUserIndex = db[userIndex].subUsers.findIndex(
-        (user) => user.id === req.body.subUserId
+      const profileIndex = db[userIndex].profiles.findIndex(
+        (profile) => profile.id === req.body.profileId
       )
-      if (subUserIndex !== -1) {
-        res.json(db[userIndex].subUsers[subUserIndex])
+      if (profileIndex !== -1) {
+        res.json(db[userIndex].profiles[profileIndex])
         res.sendStatus(200)
       } else {
         res.sendStatus(404)
@@ -78,16 +106,16 @@ app.get("/subUsers/:id", (req, res) => {
   }
 })
 
-// Create a new sub user
-app.post("/subUsers/:id", (req, res) => {
+// Create a new profile
+app.post("/profiles/:id", (req, res) => {
   if (req.body.name) {
     const userIndex = db.findIndex((user) => user.id === req.params.id)
-    if (db.some((user) => user.id === req.params.id)) {
-      const newSubUser = {
+    if (userIndex !== -1) {
+      const newProfile = {
         id: nanoid(),
         name: req.body.name,
       }
-      db[userIndex].subUsers.push(newSubUser)
+      db[userIndex].profiles.push(newProfile)
       res.json(db[userIndex])
       res.sendStatus(200)
     } else {
@@ -98,16 +126,41 @@ app.post("/subUsers/:id", (req, res) => {
   }
 })
 
-// Remove a sub user
-app.delete("/subUsers/:id", (req, res) => {
-  if (req.body.subUserId) {
+// Update a profile's info
+app.patch("/profiles/:id", (req, res) => {
+  if (req.body.name && req.body.profileId) {
+    const userIndex = db.findIndex((user) => user.id === req.params.id)
+
+    if (userIndex !== -1) {
+      const profileIndex = db[userIndex].profiles.findIndex(
+        (profile) => profile.id === req.body.profileId
+      )
+
+      if (profileIndex !== -1) {
+        db[userIndex].profiles[profileIndex].name = req.body.name
+        res.json(db[userIndex].profiles[profileIndex])
+        res.sendStatus(200)
+      } else {
+        res.sendStatus(404)
+      }
+    } else {
+      res.sendStatus(404)
+    }
+  } else {
+    res.sendStatus(400)
+  }
+})
+
+// Remove a profile
+app.delete("/profiles/:id", (req, res) => {
+  if (req.body.profileId) {
     const userIndex = db.findIndex((user) => user.id === req.params.id)
     if (userIndex !== -1) {
       if (
-        db[userIndex].subUsers.some((user) => user.id === req.body.subUserId)
+        db[userIndex].profiles.some((user) => user.id === req.body.profileId)
       ) {
-        db[userIndex].subUsers = db[userIndex].subUsers.filter(
-          (user) => user.id !== req.body.subUserId
+        db[userIndex].profiles = db[userIndex].profiles.filter(
+          (user) => user.id !== req.body.profileId
         )
         res.sendStatus(200)
       } else {
