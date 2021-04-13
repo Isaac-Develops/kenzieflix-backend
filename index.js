@@ -20,19 +20,24 @@ app.use((req, res, next) => {
   next()
 })
 
-const MongoClient = require("mongodb").MongoClient
 const uri =
   "mongodb+srv://admin:G3brJuFg6uRrT1KS@kenzie-flix.dtkr9.mongodb.net/KenzieFlix?retryWrites=true&w=majority"
-const client = new MongoClient(uri, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
-})
 
-client.connect((err) => {
-  const collection = client.db("test").collection("devices")
-  // perform actions on the collection object
-  console.log(collection)
-  client.close()
+mongoose.connect(uri, { useNewUrlParser: true, useUnifiedTopology: true })
+
+const User = mongoose.model("User", {
+  username: {
+    type: String,
+    required: true,
+  },
+  password: {
+    type: String,
+    required: true,
+  },
+  profiles: {
+    type: Array,
+    default: [],
+  },
 })
 
 app.get("/", (req, res) => {
@@ -40,38 +45,31 @@ app.get("/", (req, res) => {
 })
 
 // Get a list of users
-app.get("/users", (req, res) => {
-  res.json(db)
-  res.sendStatus(200)
+app.get("/users", async (req, res) => {
+  const users = await User.find({})
+  res.json(users)
 })
 
 // Create a new user
 app.post("/users", (req, res) => {
   if (req.body.username || req.body.password) {
-    const newUser = {
-      id: nanoid(),
+    const newUser = new User({
       username: req.body.username,
       password: req.body.password,
-      profiles: [],
-    }
-    db.push(newUser)
-    res.json(newUser)
-    res.sendStatus(200)
-  } else {
-    res.sendStatus(400)
+    })
+    newUser
+      .save()
+      .then(() => res.json(newUser))
+      .catch((err) => res.status(400).send(err))
   }
 })
 
 // Get a single user
-app.get("/users/:id", (req, res) => {
-  const selectedUser = db.find((user) => user.id === req.params.id)
+app.get("/users/:id", async (req, res) => {
+  const id = req.params.id
+  const selectedUser = await User.findById(id).exec()
 
-  if (selectedUser !== undefined) {
-    res.json(selectedUser)
-    res.sendStatus(200)
-  } else {
-    res.sendStatus(404)
-  }
+  res.json(selectedUser)
 })
 
 // Update a user's info
