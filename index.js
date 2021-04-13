@@ -1,5 +1,6 @@
 const express = require("express")
 const { nanoid } = require("nanoid")
+const mongoose = require("mongoose")
 const app = express()
 const port = 3000
 
@@ -19,7 +20,20 @@ app.use((req, res, next) => {
   next()
 })
 
-let db = []
+const MongoClient = require("mongodb").MongoClient
+const uri =
+  "mongodb+srv://admin:G3brJuFg6uRrT1KS@kenzie-flix.dtkr9.mongodb.net/KenzieFlix?retryWrites=true&w=majority"
+const client = new MongoClient(uri, {
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
+})
+
+client.connect((err) => {
+  const collection = client.db("test").collection("devices")
+  // perform actions on the collection object
+  console.log(collection)
+  client.close()
+})
 
 app.get("/", (req, res) => {
   res.send("Hello World!")
