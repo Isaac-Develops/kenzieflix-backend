@@ -4,6 +4,7 @@ const mongoose = require("mongoose")
 const app = express()
 const port = 3000
 
+// Middleware
 app.use(express.json())
 app.use((req, res, next) => {
   res.header({ "Access-Control-Allow-Origin": "*" })
@@ -20,11 +21,13 @@ app.use((req, res, next) => {
   next()
 })
 
+// Set up connection with database
 const uri =
   "mongodb+srv://admin:G3brJuFg6uRrT1KS@kenzie-flix.dtkr9.mongodb.net/KenzieFlix?retryWrites=true&w=majority"
 
 mongoose.connect(uri, { useNewUrlParser: true, useUnifiedTopology: true })
 
+// User model
 const User = mongoose.model("User", {
   username: {
     type: String,
@@ -52,7 +55,7 @@ app.get("/users", async (req, res) => {
 
 // Create a new user
 app.post("/users", (req, res) => {
-  if (req.body.username || req.body.password) {
+  if (req.body.username && req.body.password) {
     const newUser = new User({
       username: req.body.username,
       password: req.body.password,
@@ -73,27 +76,28 @@ app.get("/users/:id", async (req, res) => {
 })
 
 // Update a user's info
-app.patch("/users/:id", (req, res) => {
-  const userIndex = db.findIndex((user) => user.id === req.params.id)
+app.patch("/users/:id", async (req, res) => {
+  const selectedUser = await User.findById(req.params.id).exec()
 
-  if (userIndex !== -1) {
+  if (selectedUser !== null) {
     if (req.body.password === undefined && req.body.username === undefined) {
       res.sendStatus(400)
     } else {
       let password =
         req.body.password !== undefined
           ? req.body.password
-          : db[userIndex].password
+          : selectedUser.password
 
       let username =
         req.body.username !== undefined
           ? req.body.username
-          : db[userIndex].username
+          : selectedUser.username
 
-      db[userIndex].password = password
-      db[userIndex].username = username
-      res.json(db[userIndex])
-      res.sendStatus(200)
+      const updatedUser = User.findByIdAndUpdate(req.params.id, {
+        username: username,
+        password: password,
+      })
+      res.json(updatedUser)
     }
   } else {
     res.sendStatus(404)
@@ -102,101 +106,124 @@ app.patch("/users/:id", (req, res) => {
 
 // Delete a single user
 app.delete("/users/:id", (req, res) => {
-  if (db.some((user) => user.id === req.params.id)) {
-    db = db.filter((user) => user.id !== req.params.id)
-    res.sendStatus(200)
-  } else {
-    res.sendStatus(404)
+  User.findByIdAndDelete(req.params.id)
+})
+
+// Find a user by username and password
+// TODO: Add tokens for authentication
+app.post("auth/login", async (req, res) => {
+  if (req.body.username && req.body.password) {
+    const selectedUser = await User.find({
+      username: req.body.username,
+      password: req.body.password,
+    }).exec()
+
+    if (selectedUser !== null) {
+      res.json(selectedUser)
+    } else {
+      res.status(404)
+    }
   }
 })
 
-// Get a profile from the current user
-app.get("/profiles/:id", (req, res) => {
-  if (req.body.profileId) {
-    const userIndex = db.findIndex((user) => user.id === req.params.id)
-    if (userIndex !== -1) {
-      const profileIndex = db[userIndex].profiles.findIndex(
-        (profile) => profile.id === req.body.profileId
+// Get a list of profiles or a single profile from the current user
+app.get("/profiles/:id", async (req, res) => {
+  const selectedUser = await User.findById(req.params.id).exec()
+
+  if (selectedUser !== null) {
+    if (req.body.profileId) {
+      res.json(
+        selectedUser.profiles.find(
+          (profile) => profile.id === req.body.profileId
+        )
       )
-      if (profileIndex !== -1) {
-        res.json(db[userIndex].profiles[profileIndex])
-        res.sendStatus(200)
-      } else {
-        res.sendStatus(404)
-      }
     } else {
-      res.sendStatus(404)
+      res.json(selectedUser.profiles)
     }
   } else {
-    res.sendStatus(400)
+    res.status(404)
   }
 })
 
 // Create a new profile
-app.post("/profiles/:id", (req, res) => {
-  if (req.body.name) {
-    const userIndex = db.findIndex((user) => user.id === req.params.id)
-    if (userIndex !== -1) {
-      const newProfile = {
-        id: nanoid(),
-        name: req.body.name,
-      }
-      db[userIndex].profiles.push(newProfile)
-      res.json(db[userIndex])
-      res.sendStatus(200)
+app.post("/profiles/:id", async (req, res) => {
+  if (req.body.name && req.body.avatar) {
+    const newProfile = {
+      id: nanoid(),
+      name: req.body.name,
+      avatar: req.body.avatar,
+    }
+
+    const selectedUser = await User.findById(req.params.id).exec()
+
+    if (selectedUser !== null) {
+      await User.updateOne(
+        { _id: req.params.id },
+        {
+          profiles: [...selectedUser.profiles, newProfile],
+        }
+      )
+
+      res.json(newProfile)
     } else {
-      res.sendStatus(404)
+      res.status(404)
     }
   } else {
-    res.sendStatus(400)
+    res.status(400)
   }
 })
 
 // Update a profile's info
-app.patch("/profiles/:id", (req, res) => {
-  if (req.body.name && req.body.profileId) {
-    const userIndex = db.findIndex((user) => user.id === req.params.id)
+app.patch("/profiles/:id", async (req, res) => {
+  const selectedUser = await User.findById(req.params.id).exec()
 
-    if (userIndex !== -1) {
-      const profileIndex = db[userIndex].profiles.findIndex(
-        (profile) => profile.id === req.body.profileId
-      )
+  if (selectedUser !== null) {
+    if (req.body.profileId) {
+      if (req.body.name || req.body.avatar) {
+        const profileIndex = selectedUser.profiles.findIndex(
+          (profile) => profile.id === req.body.profileId
+        )
 
-      if (profileIndex !== -1) {
-        db[userIndex].profiles[profileIndex].name = req.body.name
-        res.json(db[userIndex].profiles[profileIndex])
-        res.sendStatus(200)
+        const name = req.body.name
+          ? req.body.name
+          : selectedUser.profiles[profileIndex].name
+        const avatar = req.body.avatar
+          ? req.body.avatar
+          : selectedUser.profiles[profileIndex].avatar
+
+        selectedUser.profiles[profileIndex].name = name
+        selectedUser.profiles[profileIndex].avatar = avatar
+
+        await User.replaceOne({ _id: req.params.id }, selectedUser)
+        res.json(selectedUser)
       } else {
-        res.sendStatus(404)
+        res.status(400)
       }
     } else {
-      res.sendStatus(404)
+      res.status(400)
     }
   } else {
-    res.sendStatus(400)
+    res.status(404)
   }
 })
 
 // Remove a profile
-app.delete("/profiles/:id", (req, res) => {
-  if (req.body.profileId) {
-    const userIndex = db.findIndex((user) => user.id === req.params.id)
-    if (userIndex !== -1) {
-      if (
-        db[userIndex].profiles.some((user) => user.id === req.body.profileId)
-      ) {
-        db[userIndex].profiles = db[userIndex].profiles.filter(
-          (user) => user.id !== req.body.profileId
-        )
-        res.sendStatus(200)
-      } else {
-        res.sendStatus(404)
-      }
+app.delete("/profiles/:id", async (req, res) => {
+  const selectedUser = await User.findById(req.params.id).exec()
+
+  if (selectedUser !== null) {
+    if (req.body.profileId) {
+      selectedUser.profiles = selectedUser.profiles.filter(
+        (profile) => profile.id !== req.body.profileId
+      )
+
+      await User.replaceOne({ _id: req.params.id }, selectedUser)
+      res.json(selectedUser)
     } else {
-      res.sendStatus(404)
+      res.status(400)
     }
   } else {
-    res.sendStatus(400)
+    res.status(404)
   }
 })
 
