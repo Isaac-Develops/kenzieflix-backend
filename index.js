@@ -45,12 +45,14 @@ const User = mongoose.model("User", {
 
 app.get("/", (req, res) => {
   res.send("Hello World!")
+  res.status(200)
 })
 
 // Get a list of users
 app.get("/users", async (req, res) => {
   const users = await User.find({})
   res.json(users)
+  res.status(200)
 })
 
 // Create a new user
@@ -62,8 +64,13 @@ app.post("/users", (req, res) => {
     })
     newUser
       .save()
-      .then(() => res.json(newUser))
-      .catch((err) => res.status(400).send(err))
+      .then(() => {
+        res.json(newUser)
+        res.status(201)
+      })
+      .catch((err) => res.status(500).send(err))
+  } else {
+    res.status(400)
   }
 })
 
@@ -72,7 +79,12 @@ app.get("/users/:id", async (req, res) => {
   const id = req.params.id
   const selectedUser = await User.findById(id).exec()
 
-  res.json(selectedUser)
+  if (selectedUser !== null) {
+    res.json(selectedUser)
+    res.status(200)
+  } else {
+    res.status(400)
+  }
 })
 
 // Update a user's info
@@ -81,7 +93,7 @@ app.patch("/users/:id", async (req, res) => {
 
   if (selectedUser !== null) {
     if (req.body.password === undefined && req.body.username === undefined) {
-      res.sendStatus(400)
+      res.status(400)
     } else {
       let password =
         req.body.password !== undefined
@@ -93,11 +105,12 @@ app.patch("/users/:id", async (req, res) => {
           ? req.body.username
           : selectedUser.username
 
-      const updatedUser = User.findByIdAndUpdate(req.params.id, {
-        username: username,
-        password: password,
-      })
-      res.json(updatedUser)
+      selectedUser.password = password
+      selectedUser.username = username
+
+      await User.replaceOne({ _id: req.params.id }, selectedUser)
+      res.json(selectedUser)
+      res.status(202)
     }
   } else {
     res.sendStatus(404)
@@ -105,13 +118,16 @@ app.patch("/users/:id", async (req, res) => {
 })
 
 // Delete a single user
-app.delete("/users/:id", (req, res) => {
-  User.findByIdAndDelete(req.params.id)
+app.delete("/users/:id", async (req, res) => {
+  await User.findByIdAndDelete(req.params.id)
+  const users = await User.find({})
+  res.json(users)
+  res.status(200)
 })
 
 // Find a user by username and password
 // TODO: Add tokens for authentication
-app.post("auth/login", async (req, res) => {
+app.post("/login", async (req, res) => {
   if (req.body.username && req.body.password) {
     const selectedUser = await User.find({
       username: req.body.username,
@@ -120,8 +136,9 @@ app.post("auth/login", async (req, res) => {
 
     if (selectedUser !== null) {
       res.json(selectedUser)
+      res.status(200)
     } else {
-      res.status(404)
+      res.status(400)
     }
   }
 })
@@ -137,8 +154,10 @@ app.get("/profiles/:id", async (req, res) => {
           (profile) => profile.id === req.body.profileId
         )
       )
+      res.status(200)
     } else {
       res.json(selectedUser.profiles)
+      res.status(200)
     }
   } else {
     res.status(404)
@@ -165,6 +184,7 @@ app.post("/profiles/:id", async (req, res) => {
       )
 
       res.json(newProfile)
+      res.status(201)
     } else {
       res.status(404)
     }
@@ -196,6 +216,7 @@ app.patch("/profiles/:id", async (req, res) => {
 
         await User.replaceOne({ _id: req.params.id }, selectedUser)
         res.json(selectedUser)
+        res.status(202)
       } else {
         res.status(400)
       }
@@ -219,6 +240,7 @@ app.delete("/profiles/:id", async (req, res) => {
 
       await User.replaceOne({ _id: req.params.id }, selectedUser)
       res.json(selectedUser)
+      res.status(200)
     } else {
       res.status(400)
     }
