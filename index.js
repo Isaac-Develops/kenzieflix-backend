@@ -29,7 +29,7 @@ mongoose.connect(uri, { useNewUrlParser: true, useUnifiedTopology: true })
 
 // User model
 const User = mongoose.model("User", {
-  username: {
+  email: {
     type: String,
     required: true,
   },
@@ -57,9 +57,9 @@ app.get("/users", async (req, res) => {
 
 // Create a new user
 app.post("/users", (req, res) => {
-  if (req.body.username && req.body.password) {
+  if (req.body.email && req.body.password) {
     const newUser = new User({
-      username: req.body.username,
+      email: req.body.email,
       password: req.body.password,
     })
     newUser
@@ -92,7 +92,7 @@ app.patch("/users/:id", async (req, res) => {
   const selectedUser = await User.findById(req.params.id).exec()
 
   if (selectedUser !== null) {
-    if (req.body.password === undefined && req.body.username === undefined) {
+    if (req.body.password === undefined && req.body.email === undefined) {
       res.status(400)
     } else {
       let password =
@@ -100,13 +100,11 @@ app.patch("/users/:id", async (req, res) => {
           ? req.body.password
           : selectedUser.password
 
-      let username =
-        req.body.username !== undefined
-          ? req.body.username
-          : selectedUser.username
+      let email =
+        req.body.email !== undefined ? req.body.email : selectedUser.email
 
       selectedUser.password = password
-      selectedUser.username = username
+      selectedUser.email = email
 
       await User.replaceOne({ _id: req.params.id }, selectedUser)
       res.json(selectedUser)
@@ -125,12 +123,12 @@ app.delete("/users/:id", async (req, res) => {
   res.status(200)
 })
 
-// Find a user by username and password
+// Find a user by email and password
 // TODO: Add tokens for authentication
 app.post("/login", async (req, res) => {
-  if (req.body.username && req.body.password) {
+  if (req.body.email && req.body.password) {
     const selectedUser = await User.find({
-      username: req.body.username,
+      email: req.body.email,
       password: req.body.password,
     }).exec()
 
