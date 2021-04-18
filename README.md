@@ -1,6 +1,6 @@
 ## Credits and References
 
-BackEnd Authors: Isaac Butterfield
+Backend Authors: Isaac Butterfield
 
 References:
 
