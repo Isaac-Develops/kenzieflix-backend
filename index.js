@@ -32,6 +32,7 @@ const User = mongoose.model("User", {
   email: {
     type: String,
     required: true,
+    unique: true,
   },
   password: {
     type: String,
@@ -107,8 +108,11 @@ app.patch("/users/:id", async (req, res) => {
       selectedUser.email = email
 
       await User.replaceOne({ _id: req.params.id }, selectedUser)
-      res.json(selectedUser)
-      res.status(202)
+        .then(() => {
+          res.json(selectedUser)
+          res.status(202)
+        })
+        .catch((err) => res.status(500).send(err))
     }
   } else {
     res.sendStatus(404)
@@ -169,6 +173,8 @@ app.post("/profiles/:id", async (req, res) => {
       id: nanoid(),
       name: req.body.name,
       avatar: req.body.avatar,
+      watchList: [],
+      watchedList: [],
     }
 
     const selectedUser = await User.findById(req.params.id).exec()
