@@ -69,7 +69,7 @@ app.post("/users", (req, res) => {
         res.json(newUser)
         res.status(201)
       })
-      .catch((err) => res.status(500).send(err))
+      .catch(() => res.status(400).send("Email must be unique"))
   } else {
     res.status(400)
   }
