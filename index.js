@@ -140,7 +140,7 @@ app.post("/login", async (req, res) => {
       res.json(selectedUser)
       res.status(200)
     } else {
-      res.status(400).send("Invalid username or password")
+      res.status(400).send("Invalid email or password")
     }
   } else {
     res.status(400)
