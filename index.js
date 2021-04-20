@@ -142,6 +142,8 @@ app.post("/login", async (req, res) => {
     } else {
       res.status(400)
     }
+  } else {
+    res.status(400)
   }
 })
 
@@ -244,6 +246,98 @@ app.delete("/profiles/:id", async (req, res) => {
 
       await User.replaceOne({ _id: req.params.id }, selectedUser)
       res.json(selectedUser)
+      res.status(200)
+    } else {
+      res.status(400)
+    }
+  } else {
+    res.status(404)
+  }
+})
+
+// Add an movie to the Watch List
+app.post("/profiles/watchlist/:id", async (req, res) => {
+  const selectedUser = await User.findById(req.params.id).exec()
+
+  if (selectedUser !== null) {
+    if (req.body.profileId && req.body.movie) {
+      const profileIndex = selectedUser.profiles.findIndex(
+        (profile) => profile.id === req.body.profileId
+      )
+
+      selectedUser.profiles[profileIndex].watchList.push(req.body.movie)
+      await User.replaceOne({ _id: req.params.id }, selectedUser)
+      res.json(selectedUser.profiles[profileIndex].watchList)
+      res.status(200)
+    } else {
+      res.status(400)
+    }
+  } else {
+    res.status(404)
+  }
+})
+
+// Remove a movie from the Watch List
+app.delete("/profiles/watchList/:id", async (req, res) => {
+  const selectedUser = await User.findById(req.params.id).exec()
+
+  if (selectedUser !== null) {
+    if (req.body.profileId && req.body.title) {
+      const profileIndex = selectedUser.profiles.findIndex(
+        (profile) => profile.id === req.body.profileId
+      )
+
+      selectedUser.profiles[profileIndex].watchList = selectedUser.profiles[
+        profileIndex
+      ].watchList.filter((movie) => movie.title !== req.body.title)
+      await User.replaceOne({ _id: req.params.id }, selectedUser)
+      res.json(selectedUser.profiles[profileIndex].watchList)
+      res.status(200)
+    } else {
+      res.status(400)
+    }
+  } else {
+    res.status(404)
+  }
+})
+
+// Add a movie to the Watched List
+app.post("/profiles/watchedList/:id", async (req, res) => {
+  const selectedUser = await User.findById(req.params.id).exec()
+
+  if (selectedUser !== null) {
+    if (req.body.profileId && req.body.movie) {
+      const profileIndex = selectedUser.profiles.findIndex(
+        (profile) => profile.id === req.body.profileId
+      )
+
+      selectedUser.profiles[profileIndex].watchedList.push(req.body.movie)
+      await User.replaceOne({ _id: req.params.id }, selectedUser)
+      res.json(selectedUser.profiles[profileIndex].watchedList)
+      res.status(200)
+    } else {
+      res.status(400)
+    }
+  } else {
+    res.status(404)
+  }
+})
+
+// Remove a movie from the Watched List
+app.delete("/profiles/watchedList/:id", async (req, res) => {
+  const selectedUser = await User.findById(req.params.id).exec()
+
+  if (selectedUser !== null) {
+    if (req.body.profileId && req.body.title) {
+      const profileIndex = selectedUser.profiles.findIndex(
+        (profile) => profile.id === req.body.profileId
+      )
+
+      selectedUser.profiles[profileIndex].watchedList = selectedUser.profiles[
+        profileIndex
+      ].watchedList.filter((movie) => movie.title !== req.body.title)
+      await User.replaceOne({ _id: req.params.id }, selectedUser)
+      res.json(selectedUser.profiles[profileIndex].watchedList)
       res.status(200)
     } else {
       res.status(400)
